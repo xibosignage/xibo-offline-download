@@ -93,6 +93,8 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         numItems = self.selectedDisplays.GetCount()
         for i in range(0,numItems):
             self.selectedDisplays.SetSelection(i)
+
+        self.btnRemove.Enable()
         event.Skip()
 
     def onSelectNone(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -101,6 +103,8 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
         for i in range(0,numItems):
             self.selectedDisplays.Deselect(i)
+
+        self.btnRemove.Disable()
         event.Skip()
 
     def onSelectInvert(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -113,6 +117,11 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
                 self.selectedDisplays.Deselect(i)
             else:
                 self.selectedDisplays.SetSelection(i)
+        
+        if len(self.selectedDisplays.GetSelections()) > 0:
+            self.btnRemove.Enable()
+        else:
+            self.btnRemove.Disable()
 
         event.Skip()
 
@@ -134,6 +143,29 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
     def onConfigSave(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         print "Event handler `onConfigSave' not implemented!"
+        event.Skip()
+
+    def onDisplayListDClick(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        # print "Event handler `onDisplayListDClick' not implemented"
+        event.Skip()
+
+    def onDisplayListClick(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        if len(self.selectedDisplays.GetSelections()) > 0:
+            self.btnRemove.Enable()
+        else:
+            self.btnRemove.Disable()
+        event.Skip()
+
+    def onServerUrlChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        self.btnSave.Enable()
+        event.Skip()
+
+    def onServerKeyChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        self.btnSave.Enable()
+        event.Skip()
+
+    def onVerboseChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        self.btnSave.Enable()
         event.Skip()
 
 if __name__ == "__main__":

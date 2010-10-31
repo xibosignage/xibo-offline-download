@@ -38,11 +38,13 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.panel_4 = wx.Panel(self.Tabs_Displays, -1)
         self.btnSave = wx.Button(self.Tabs_Displays, -1, _("Save"))
         self.lnHorizontalLine = wx.StaticLine(self, -1)
-        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("/home/alex/scratch/xibo-release/pyclient-1.2.1a1/client/offline/logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
+        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
 
         self.__set_properties()
         self.__do_layout()
 
+        self.Bind(wx.EVT_LISTBOX_DCLICK, self.onDisplayListDClick, self.selectedDisplays)
+        self.Bind(wx.EVT_LISTBOX, self.onDisplayListClick, self.selectedDisplays)
         self.Bind(wx.EVT_BUTTON, self.onSelectAll, self.btnAll)
         self.Bind(wx.EVT_BUTTON, self.onSelectNone, self.btnNone)
         self.Bind(wx.EVT_BUTTON, self.onSelectInvert, self.btnInvert)
@@ -50,6 +52,9 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onDeleteDisplay, self.btnRemove)
         self.Bind(wx.EVT_BUTTON, self.onDownload, self.btnDownload)
         self.Bind(wx.EVT_BUTTON, self.onCancel, self.btnCancel)
+        self.Bind(wx.EVT_TEXT, self.onServerUrlChange, self.txtServerURL)
+        self.Bind(wx.EVT_TEXT, self.onServerKeyChange, self.txtServerKey)
+        self.Bind(wx.EVT_CHECKBOX, self.onVerboseChange, self.chkVerbose)
         self.Bind(wx.EVT_BUTTON, self.onConfigSave, self.btnSave)
         # end wxGlade
 
@@ -62,6 +67,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.txtOutput.SetMinSize((369, 300))
         self.btnDownload.SetDefault()
         self.btnCancel.Enable(False)
+        self.btnSave.Enable(False)
         # end wxGlade
 
     def __do_layout(self):
@@ -141,6 +147,26 @@ class XiboOfflineDownloadUI(wx.Frame):
 
     def onConfigSave(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         print "Event handler `onConfigSave' not implemented!"
+        event.Skip()
+
+    def onDisplayListDClick(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onDisplayListDClick' not implemented"
+        event.Skip()
+
+    def onDisplayListClick(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onDisplayListClick' not implemented"
+        event.Skip()
+
+    def onServerUrlChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onServerUrlChange' not implemented"
+        event.Skip()
+
+    def onServerKeyChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onServerKeyChange' not implemented"
+        event.Skip()
+
+    def onVerboseChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onVerboseChange' not implemented"
         event.Skip()
 
 # end of class XiboOfflineDownloadUI
