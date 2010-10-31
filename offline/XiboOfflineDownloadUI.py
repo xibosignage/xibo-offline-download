@@ -9,6 +9,71 @@ import wx
 
 
 
+class AddDisplayUI(wx.Dialog):
+    def __init__(self, *args, **kwds):
+        # begin wxGlade: AddDisplayUI.__init__
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.STAY_ON_TOP
+        wx.Dialog.__init__(self, *args, **kwds)
+        self.lblClientName = wx.StaticText(self, -1, _("Client Name"))
+        self.txtClientName = wx.TextCtrl(self, -1, "")
+        self.lblClientKey = wx.StaticText(self, -1, _("Client Key"))
+        self.txtClientKey = wx.TextCtrl(self, -1, "")
+        self.panel_1 = wx.Panel(self, -1)
+        self.btnCreateDisplay = wx.Button(self, -1, _("Add Display"))
+        self.btnGenerateKey = wx.Button(self, -1, _("Generate Key"))
+        self.btnCancel = wx.Button(self, -1, _("Cancel"))
+
+        self.__set_properties()
+        self.__do_layout()
+
+        self.Bind(wx.EVT_BUTTON, self.onCreateDisplay, self.btnCreateDisplay)
+        self.Bind(wx.EVT_BUTTON, self.onGenerateKey, self.btnGenerateKey)
+        self.Bind(wx.EVT_BUTTON, self.onCancel, self.btnCancel)
+        # end wxGlade
+
+    def __set_properties(self):
+        # begin wxGlade: AddDisplayUI.__set_properties
+        self.SetTitle(_("Add Display"))
+        self.txtClientName.SetToolTipString(_("The name of the client to add as it will appear on the server"))
+        self.btnGenerateKey.SetToolTipString(_("Generate a random client license key"))
+        # end wxGlade
+
+    def __do_layout(self):
+        # begin wxGlade: AddDisplayUI.__do_layout
+        grid_sizer_3 = wx.FlexGridSizer(3, 3, 0, 0)
+        sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+        grid_sizer_3.Add(self.lblClientName, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        grid_sizer_3.Add((20, 20), 0, 0, 0)
+        grid_sizer_3.Add(self.txtClientName, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 0)
+        grid_sizer_3.Add(self.lblClientKey, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        grid_sizer_3.Add((20, 20), 0, 0, 0)
+        grid_sizer_3.Add(self.txtClientKey, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 0)
+        grid_sizer_3.Add(self.panel_1, 1, wx.EXPAND, 0)
+        grid_sizer_3.Add((20, 20), 0, 0, 0)
+        sizer_1.Add(self.btnCreateDisplay, 0, 0, 0)
+        sizer_1.Add(self.btnGenerateKey, 0, 0, 0)
+        sizer_1.Add(self.btnCancel, 0, 0, 0)
+        grid_sizer_3.Add(sizer_1, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL, 0)
+        self.SetSizer(grid_sizer_3)
+        grid_sizer_3.Fit(self)
+        grid_sizer_3.AddGrowableCol(2)
+        self.Layout()
+        # end wxGlade
+
+    def onCreateDisplay(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        print "Event handler `onCreateDisplay' not implemented!"
+        event.Skip()
+
+    def onGenerateKey(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        print "Event handler `onGenerateKey' not implemented!"
+        event.Skip()
+
+    def onCancel(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        print "Event handler `onCancel' not implemented!"
+        event.Skip()
+
+# end of class AddDisplayUI
+
 class XiboOfflineDownloadUI(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: XiboOfflineDownloadUI.__init__
@@ -38,7 +103,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.panel_4 = wx.Panel(self.Tabs_Displays, -1)
         self.btnSave = wx.Button(self.Tabs_Displays, -1, _("Save"))
         self.lnHorizontalLine = wx.StaticLine(self, -1)
-        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
+        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("/home/alex/scratch/xibo-release/pyclient-1.2.1a1/client/offline/logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
 
         self.__set_properties()
         self.__do_layout()

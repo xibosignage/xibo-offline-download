@@ -26,9 +26,11 @@ APP_NAME = 'Xibo Offline Download Client'
 
 # Imports
 from XiboOfflineDownloadUI import XiboOfflineDownloadUI
+from XiboOfflineDownloadUI import AddDisplayUI
 import wx
 import os
 import ConfigParser
+import uuid
 
 class XiboOfflineDownload(XiboOfflineDownloadUI):
 
@@ -36,6 +38,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
     def setup_tasks(self):
         self.SetTitle(APP_NAME)
         self.txtOutput.AppendText('%s v%s' % (APP_NAME,VERSION));
+
+        # Define Variables
+        self.AddDisplayDialog = None
 
         # Figure out where our config is saved
         self.__config_path = os.path.expanduser('~')
@@ -126,7 +131,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         event.Skip()
 
     def onAddDisplay(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
-        print "Event handler `onAddDisplay' not implemented!"
+        if self.AddDisplayDialog == None:        
+            self.AddDisplayDialog = AddDisplay(self,-1)
+        self.AddDisplayDialog.Show()
         event.Skip()
 
     def onDeleteDisplay(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -166,6 +173,20 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
     def onVerboseChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         self.btnSave.Enable()
+        event.Skip()
+
+class AddDisplay(AddDisplayUI):
+    def onCreateDisplay(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        print "Event handler `onCreateDisplay' not implemented!"
+        event.Skip()
+
+    def onGenerateKey(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        self.txtClientKey.Clear()
+        self.txtClientKey.WriteText(uuid.uuid4().hex)
+        event.Skip()
+
+    def onCancel(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        self.Close()
         event.Skip()
 
 if __name__ == "__main__":
