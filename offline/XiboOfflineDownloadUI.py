@@ -26,6 +26,8 @@ class AddDisplayUI(wx.Dialog):
         self.__set_properties()
         self.__do_layout()
 
+        self.Bind(wx.EVT_TEXT, self.onClientNameChange, self.txtClientName)
+        self.Bind(wx.EVT_TEXT, self.onClientKeyChange, self.txtClientKey)
         self.Bind(wx.EVT_BUTTON, self.onCreateDisplay, self.btnCreateDisplay)
         self.Bind(wx.EVT_BUTTON, self.onGenerateKey, self.btnGenerateKey)
         self.Bind(wx.EVT_BUTTON, self.onCancel, self.btnCancel)
@@ -35,6 +37,7 @@ class AddDisplayUI(wx.Dialog):
         # begin wxGlade: AddDisplayUI.__set_properties
         self.SetTitle(_("Add Display"))
         self.txtClientName.SetToolTipString(_("The name of the client to add as it will appear on the server"))
+        self.btnCreateDisplay.Enable(False)
         self.btnGenerateKey.SetToolTipString(_("Generate a random client license key"))
         # end wxGlade
 
@@ -72,6 +75,14 @@ class AddDisplayUI(wx.Dialog):
         print "Event handler `onCancel' not implemented!"
         event.Skip()
 
+    def onClientNameChange(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        print "Event handler `onClientNameChange' not implemented"
+        event.Skip()
+
+    def onClientKeyChange(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        print "Event handler `onClientKeyChange' not implemented"
+        event.Skip()
+
 # end of class AddDisplayUI
 
 class XiboOfflineDownloadUI(wx.Frame):
@@ -103,7 +114,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.panel_4 = wx.Panel(self.Tabs_Displays, -1)
         self.btnSave = wx.Button(self.Tabs_Displays, -1, _("Save"))
         self.lnHorizontalLine = wx.StaticLine(self, -1)
-        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
+        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("/home/alex/scratch/xibo-release/pyclient-1.2.1a1/client/offline/logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
 
         self.__set_properties()
         self.__do_layout()

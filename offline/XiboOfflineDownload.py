@@ -31,6 +31,14 @@ import wx
 import os
 import ConfigParser
 import uuid
+from threading import Thread, Semaphore
+import urlparse
+import xml.parsers.expat
+from SOAPpy import WSDL
+import SOAPpy.Types
+import SOAPpy.Errors
+import socket
+import hashlib
 
 class XiboOfflineDownload(XiboOfflineDownloadUI):
 
@@ -179,22 +187,60 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 class AddDisplay(AddDisplayUI):
     def onCreateDisplay(self, event): # wxGlade: AddDisplayUI.<event_handler>
         # Actually Add the Display
+        xmds = XMDS(self.txtClientKey.GetValue(),self.txtClientName.GetValue(),config.get('Main','xmdsKey'),self.__parent.txtOutput)
+        try:
+            xmds.RegisterDisplay()
+        except XMDSException:
+            print "Webservice Exception"
+            event.Skip()
+            return
 
         # If all went well, reninitialize the form and close it
         self.txtClientKey.Clear()
-        self.txtClientKey.WriteText(uuid.uuid4().hex)
+        self.txtClientName.Clear()
+        self.btnCreateDisplay.Disable()
+        self.txtClientKey.WriteText(hashlib.sha1(uuid.uuid4().hex).hexdigest())
         self.__parent.updateDisplays()
         self.Close()
         event.Skip()
 
     def onGenerateKey(self, event): # wxGlade: AddDisplayUI.<event_handler>
         self.txtClientKey.Clear()
-        self.txtClientKey.WriteText(uuid.uuid4().hex)
+        self.txtClientKey.WriteText(hashlib.sha1(uuid.uuid4().hex).hexdigest())
         event.Skip()
 
     def onCancel(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        self.txtClientKey.Clear()
+        self.txtClientName.Clear()
+        self.btnCreateDisplay.Disable()
         self.Close()
         event.Skip()
+
+    def onClientNameChange(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        if self.validateFields():
+            self.btnCreateDisplay.Enable()
+        else:
+            self.btnCreateDisplay.Disable()
+        event.Skip()
+
+    def onClientKeyChange(self, event): # wxGlade: AddDisplayUI.<event_handler>
+        if self.validateFields():
+            self.btnCreateDisplay.Enable()
+        else:
+            self.btnCreateDisplay.Disable()
+        event.Skip()
+
+    def validateFields(self):
+        ret = True
+
+        if len(self.txtClientKey.GetValue()) < 1:
+            ret = False
+
+        if len(self.txtClientName.GetValue()) < 1:
+            ret = False
+
+        return ret
+
 
     def setParent(self,parent):
         self.__parent = parent
@@ -207,7 +253,7 @@ class XMDSException(Exception):
         return repr(self.value)
 
 class XMDS:
-    def __init__(self):
+    def __init__(self,licenseKey,clientName,serverKey,logWindow):
         self.__schemaVersion__ = "2";
 
         # Semaphore to allow only one XMDS call to run check simultaneously
@@ -215,9 +261,10 @@ class XMDS:
 
         self.hasInitialised = False
 
-        self.uuid = ''
-        self.name = ''
-        self.key = ''
+        self.uuid = licenseKey
+        self.name = clientName
+        self.key = serverKey
+        self.logWindow = logWindow
 
         self.socketTimeout = None
         try:
@@ -230,6 +277,7 @@ class XMDS:
 #            log.log(2,"info",_("Set socket timeout to: ") + str(self.socketTimeout))
         except:
 #            log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
+            pass
             
         # Setup a Proxy for XMDS
         self.xmdsUrl = None
@@ -242,6 +290,9 @@ class XMDS:
 #            log.log(0,"error",_("No XMDS URL specified in your configuration"))
 #            log.log(0,"error",_("Please check your xmdsUrl configuration option"))
 #            exit(1)
+            pass
+        except IndexError:
+            print "Invalid XMDS URL. Check configuration."
 
         # Work out the URL for XMDS and add HTTP URL quoting (ie %xx)
         self.wsdlFile = self.xmdsUrl + '?wsdl'
@@ -275,13 +326,14 @@ class XMDS:
             tries = 0
             while self.server == None and tries < 3:
                 tries = tries + 1
-                log.log(2,"info",_("Connecting to XMDS at ") + self.xmdsUrl + " " + _("Attempt") + " " + str(tries))
+#                log.log(2,"info",_("Connecting to XMDS at ") + self.xmdsUrl + " " + _("Attempt") + " " + str(tries))
                 try:
                     self.server = WSDL.Proxy(self.wsdlFile)
                     self.hasInitialised = True
-                    log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
+#                    log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
                 except xml.parsers.expat.ExpatError:
-                    log.log(0,"error",_("Could not connect to XMDS."))
+#                    log.log(0,"error",_("Could not connect to XMDS."))
+                    pass
             # End While
             if self.server == None:
                 self.checkLock.release()
@@ -292,222 +344,127 @@ class XMDS:
 
     def RequiredFiles(self):
         """Connect to XMDS and get a list of required files"""
-        log.lights('RF','amber')
+#        log.lights('RF','amber')
         req = None
         if self.check():
-            try:
+#            try:
                 # Update the IP Address shown on the infoScreen
-                log.updateIP(self.getIP())
-            except:
-                pass
-            log.updateFreeSpace(self.getDisk())
+#                log.updateIP(self.getIP())
+#            except:
+#                pass
+#            log.updateFreeSpace(self.getDisk())
             try:
                 req = self.server.RequiredFiles(self.getKey(),self.getUUID(),self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
-                log.lights('RF','red')
+#                log.lights('RF','red')
                 raise XMDSException("RequiredFiles: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
-                log.lights('RF','red')
-                log.log(0,"error",str(err))
+#                log.lights('RF','red')
+#                log.log(0,"error",str(err))
                 raise XMDSException("RequiredFiles: HTTP error connecting to XMDS.")
             except socket.error, err:
-                log.lights('RF','red')
-                log.log(0,"error",str(err))
+#                log.lights('RF','red')
+#                log.log(0,"error",str(err))
                 raise XMDSException("RequiredFiles: socket error connecting to XMDS.")
             except AttributeError, err:
-                log.lights('RF','red')
-                log.log(0,"error",str(err))
+#                log.lights('RF','red')
+#                log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("RequiredFiles: webservice not initialised")
             except KeyError, err:
-                log.lights('RF', 'red')
-                log.log(0,"error",str(err))
+#                log.lights('RF', 'red')
+#                log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("RequiredFiles: Webservice returned non XML content")
         else:
-            log.log(0,"error","XMDS could not be initialised")
-            log.lights('RF','grey')
+#            log.log(0,"error","XMDS could not be initialised")
+#            log.lights('RF','grey')
             raise XMDSException("XMDS could not be initialised")
 
-        log.lights('RF','green')
+#        log.lights('RF','green')
         return req
     
-    def SubmitLog(self,logXml):
-        response = None
-        log.lights('Log','amber')
-        
-        if self.check():
-            try:
-                # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
-                response = self.server.SubmitLog(self.__schemaVersion__,self.getKey(),self.getUUID(),logXml)
-            except SOAPpy.Types.faultType, err:
-                print(str(err))
-                log.log(0,"error",str(err))
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: Incorrect arguments passed to XMDS.")
-            except SOAPpy.Errors.HTTPError, err:
-                print(str(err))
-                log.log(0,"error",str(err))
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: HTTP error connecting to XMDS.")
-            except socket.error, err:
-                print(str(err))
-                log.log(0,"error",str(err))
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: socket error connecting to XMDS.")
-            except KeyError, err:
-                print("KeyError: " + str(err))
-                log.log(0,"error","KeyError: " + str(err))
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: Key error connecting to XMDS.")
-            except AttributeError, err:
-                log.lights('Log','red')
-                log.log(0,"error",str(err))
-                self.hasInitialised = False
-                raise XMDSException("SubmitLog: webservice not initialised")
-            except KeyError, err:
-                log.lights('Log', 'red')
-                log.log(0,"error",str(err))
-                self.hasInitialised = False
-                raise XMDSException("SubmitLog: Webservice returned non XML content")
-            except:
-                print("SubmitLog: An unexpected error occured.")
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: Unknown exception was handled.")
-        else:
-            log.log(0,"error","XMDS could not be initialised")
-            log.lights('Log','grey')
-            raise XMDSException("XMDS could not be initialised")
-        
-        log.lights('Log','green')
-        return response
-    
-    def SubmitStats(self,statXml):
-        response = None
-        log.lights('Stat','amber')
-        
-        if self.check():
-            try:
-                response = self.server.SubmitStats(self.__schemaVersion__,self.getKey(),self.getUUID(),statXml)
-            except SOAPpy.Types.faultType, err:
-                log.log(0,"error",str(err))
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: Incorrect arguments passed to XMDS.")
-            except SOAPpy.Errors.HTTPError, err:
-                log.log(0,"error",str(err))
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: HTTP error connecting to XMDS.")
-            except socket.error, err:
-                log.log(0,"error",str(err))
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: socket error connecting to XMDS.")
-            except KeyError, err:
-                log.log(0,"error","KeyError: " + str(err))
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: Key error connecting to XMDS.")
-            except AttributeError, err:
-                log.lights('Stat','red')
-                log.log(0,"error",str(err))
-                self.hasInitialised = False
-                raise XMDSException("SubmitStats: webservice not initialised")
-            except KeyError, err:
-                log.lights('Stat', 'red')
-                log.log(0,"error",str(err))
-                self.hasInitialised = False
-                raise XMDSException("SubmitStats: Webservice returned non XML content")
-            except:
-                print("SubmitStats: An unexpected error occured.")
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: Unknown exception was handled.")
-        else:
-            log.log(0,"error","XMDS could not be initialised")
-            log.lights('Stat','grey')
-            raise XMDSException("XMDS could not be initialised")
-        
-        log.lights('Stat','green')
-        return response
-
     def Schedule(self):
         """Connect to XMDS and get the current schedule"""
-        log.lights('S','amber')
+#        log.lights('S','amber')
         req = None
         if self.check():
             try:
                 try:
                     req = self.server.Schedule(self.getKey(),self.getUUID(),self.__schemaVersion__)
                 except SOAPpy.Types.faultType, err:
-                    log.log(0,"error",str(err))
-                    log.lights('S','red')
+#                    log.log(0,"error",str(err))
+#                    log.lights('S','red')
                     raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
                 except SOAPpy.Errors.HTTPError, err:
-                    log.log(0,"error",str(err))
-                    log.lights('S','red')
+#                    log.log(0,"error",str(err))
+#                    log.lights('S','red')
                     raise XMDSException("Schedule: HTTP error connecting to XMDS.")
                 except socket.error, err:
-                    log.log(0,"error",str(err))
-                    log.lights('S','red')
+#                    log.log(0,"error",str(err))
+#                    log.lights('S','red')
                     raise XMDSException("Schedule: socket error connecting to XMDS.")
                 except AttributeError, err:
-                    log.lights('S','red')
-                    log.log(0,"error",str(err))
+#                    log.lights('S','red')
+#                    log.log(0,"error",str(err))
                     self.hasInitialised = False
                     raise XMDSException("Schedule: webservice not initialised")
                 except KeyError, err:
-                    log.lights('S', 'red')
-                    log.log(0,"error",str(err))
+#                    log.lights('S', 'red')
+#                    log.log(0,"error",str(err))
                     self.hasInitialised = False
                     raise XMDSException("Schedule: Webservice returned non XML content")
             except AttributeError, err:
                 # For some reason the except SOAPpy.Types line above occasionally throws an
                 # exception when the client first starts saying SOAPpy doesn't have a Types attribute
                 # Catch that here I guess!
-                log.lights('S','red')
-                log.log(0,"error",str(err))
+#                log.lights('S','red')
+#                log.log(0,"error",str(err))
                 self.hasInitiated = False
                 raise XMDSException("RequiredFiles: webservice not initalised")
         else:
-            log.log(0,"error","XMDS could not be initialised")
-            log.lights('S','grey')
+#            log.log(0,"error","XMDS could not be initialised")
+#            log.lights('S','grey')
             raise XMDSException("XMDS could not be initialised")
 
-        log.lights('S','green')
+#        log.lights('S','green')
         return req
 
     def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
         """Connect to XMDS and download a file"""
         response = None
-        log.lights('GF','amber')
+#        log.lights('GF','amber')
         if self.check():
             try:
                 response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
-                log.log(0,"error",str(err))
-                log.lights('GF','red')
+#                log.log(0,"error",str(err))
+#                log.lights('GF','red')
                 raise XMDSException("GetFile: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
-                log.log(0,"error",str(err))
-                log.lights('GF','red')
+#                log.log(0,"error",str(err))
+#                log.lights('GF','red')
                 raise XMDSException("GetFile: HTTP error connecting to XMDS.")
             except socket.error, err:
-                log.log(0,"error",str(err))
-                log.lights('GF','red')
+#                log.log(0,"error",str(err))
+#                log.lights('GF','red')
                 raise XMDSException("GetFile: socket error connecting to XMDS.")
             except AttributeError, err:
-                log.lights('GF','red')
-                log.log(0,"error",str(err))
+#                log.lights('GF','red')
+#                log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("GetFile: webservice not initialised")
             except KeyError, err:
-                log.lights('GF', 'red')
-                log.log(0,"error",str(err))
+#                log.lights('GF', 'red')
+#                log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("GetFile: Webservice returned non XML content")
         else:
-            log.log(0,"error","XMDS could not be initialised")
-            log.lights('GF','grey')
+#            log.log(0,"error","XMDS could not be initialised")
+#            log.lights('GF','grey')
             raise XMDSException("XMDS could not be initialised")
 
-        log.lights('GF','green')
+#        log.lights('GF','green')
         return response
 
     def RegisterDisplay(self):
@@ -519,65 +476,30 @@ class XMDS:
         except:
             pass
 
-        if requireXMDS:
-            log.lights('RD','amber')
-            regReturn = ""
-            regOK = "Display is active and ready to start."
-            regInterval = 20
-            tries = 0
-            while regReturn != regOK:
-                tries = tries + 1
-                if self.check():
-                    try:
-                        regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__)
-                        log.log(0,"info",regReturn)
-                    except SOAPpy.Types.faultType, err:
-                        log.lights('RD','red')
-                        log.log(0,"error",str(err))
-                    except SOAPpy.Errors.HTTPError, err:
-                        log.lights('RD','red')
-                        log.log(0,"error",str(err))
-                    except socket.error, err:
-                        log.lights('RD','red')
-                        log.log(0,"error",str(err))
-                    except AttributeError, err:
-                        log.lights('RD','red')
-                        log.log(0,"error",str(err))
-                        self.hasInitialised = False
-                    except KeyError, err:
-                        log.lights('RD', 'red')
-                        log.log(0,"error",str(err))
-                        self.hasInitialised = False
-
-                if regReturn != regOK:
-                    # We're not licensed. Sleep 20 * tries seconds and try again.
-                    log.log(0,"info",_("Waiting for license to be issued, or connection restored to the webservice. Set requireXMDS=false to skip this check"))
-                    log.lights('RD','red')
-                    time.sleep(regInterval * tries)
-            # End While
-            log.lights('RD','green')
-        else:
-            if self.check():
-                try:
-                    log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__))
-                    log.lights('RD','green')
-                except SOAPpy.Types.faultType, err:
-                    log.lights('RD','red')
-                    log.log(0,"error",str(err))
-                except SOAPpy.Errors.HTTPError, err:
-                    log.lights('RD','red')
-                    log.log(0,"error",str(err))
-                except socket.error, err:
-                    log.lights('RD','red')
-                    log.log(0,"error",str(err))
-                except AttributeError, err:
-                    log.lights('RD','red')
-                    log.log(0,"error",str(err))
-                    self.hasInitialised = False
-                except KeyError, err:
-                    log.lights('RD', 'red')
-                    log.log(0,"error",str(err))
-                    self.hasInitialised = False
+        if self.check():
+            try:
+                self.logWindow.AppendText(self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__))
+#                log.lights('RD','green')
+            except SOAPpy.Types.faultType, err:
+#                log.lights('RD','red')
+#                log.log(0,"error",str(err))
+                pass
+            except SOAPpy.Errors.HTTPError, err:
+#                log.lights('RD','red')
+#                log.log(0,"error",str(err))
+                pass
+            except socket.error, err:
+#                log.lights('RD','red')
+#                log.log(0,"error",str(err))
+                pass
+            except AttributeError, err:
+#                log.lights('RD','red')
+#                log.log(0,"error",str(err))
+                self.hasInitialised = False
+            except KeyError, err:
+#                log.lights('RD', 'red')
+#                log.log(0,"error",str(err))
+                self.hasInitialised = False
 
 if __name__ == "__main__":
     import gettext
