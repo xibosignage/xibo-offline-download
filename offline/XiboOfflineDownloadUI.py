@@ -103,7 +103,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.panel_4 = wx.Panel(self.Tabs_Displays, -1)
         self.btnSave = wx.Button(self.Tabs_Displays, -1, _("Save"))
         self.lnHorizontalLine = wx.StaticLine(self, -1)
-        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("/home/alex/scratch/xibo-release/pyclient-1.2.1a1/client/offline/logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
+        self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
 
         self.__set_properties()
         self.__do_layout()
