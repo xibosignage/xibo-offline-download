@@ -170,7 +170,21 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         event.Skip()
 
     def onDeleteDisplay(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
-        print "Event handler `onDeleteDisplay' not implemented!"
+        # Are you sure
+        dlg = wx.MessageDialog(self, _("Are you sure you want to delete the selected displays?"),_("Delete Displays?/"),style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION|wx.STAY_ON_TOP)
+        if dlg.ShowModal() == wx.ID_YES:
+            # Get a list of selected Displays
+            selections = self.selectedDisplays.GetSelections()
+
+            for i in selections:
+                display = self.selectedDisplays.GetString(i)
+                config.remove_section(display)
+                log(_('Removed display %s') % display,True,True)
+
+            self.saveConfig()
+            self.updateDisplays()
+        
+        dlg.Destroy()        
         event.Skip()
 
     def onDownload(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
