@@ -39,6 +39,7 @@ import SOAPpy.Types
 import SOAPpy.Errors
 import socket
 import hashlib
+import shutil
 
 class XiboOfflineDownload(XiboOfflineDownloadUI):
 
@@ -49,6 +50,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
         # Define Variables
         self.AddDisplayDialog = None
+        self.downloadThread = None
 
         # Figure out where our config is saved
         self.__config_path = os.path.expanduser('~')
@@ -122,6 +124,14 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
         return True
 
+    def downloadSchedule(self,key,outdir):
+        # TODO: Implement
+        return
+
+    def downloadRequiredFiles(self,key,outdir):
+        # TODO: Implement
+        return []
+
     # Event Handlers
     def onSelectAll(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         # Select all items in the display list
@@ -131,6 +141,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         
         if numItems > 0:
             self.btnRemove.Enable()
+            self.btnDownload.Enable()
 
         event.Skip()
 
@@ -142,6 +153,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
             self.selectedDisplays.Deselect(i)
 
         self.btnRemove.Disable()
+        self.btnDownload.Disable()
         event.Skip()
 
     def onSelectInvert(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -157,8 +169,10 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         
         if len(self.selectedDisplays.GetSelections()) > 0:
             self.btnRemove.Enable()
+            self.btnDownload.Enable()
         else:
             self.btnRemove.Disable()
+            self.btnDownload.Disable()
 
         event.Skip()
 
@@ -188,11 +202,75 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         event.Skip()
 
     def onDownload(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
-        print "Event handler `onDownload' not implemented!"
+        try:
+            outdir = config.get('Main','outDir')
+        except ConfigParser.NoOptionError:
+            outdir=''
+
+        log('Saved Output Directory: %s' % outdir)
+
+        # Display a dialog asking for a folder to write to
+        dlg = wx.DirDialog(self,_("Select output USB drive root folder"),outdir)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            outdir = dlg.GetPath()
+            config.set('Main','outDir',outdir)
+            self.saveConfig()
+            log('Selected Output Directory: %s' % outdir)
+
+        dlg.Destroy()
+
+        # Get the displays selected:
+        displays = []
+        selections = self.selectedDisplays.GetSelections()
+
+        for i in selections:
+            displays.append(self.selectedDisplays.GetString(i))
+
+        # Displays now contains a list of display names to download content for
+        # Create output folders for each display key:
+
+        for display in displays:
+            try:
+                key = config.get(display,'license')
+            except ConfigParser.NoOptionError:
+                log(_('No license key for display %s. Please check configuration.') % display,True,True)
+                # Remove the display from the list
+                del displays[displays.index(display)]
+                continue
+
+            try:
+                shutil.rmtree(os.path.join(outdir,key))
+            except OSError:
+                if os.path.isdir(os.path.join(outdir,key)):
+                    log(_('Unable to remove old output directory. Check filesystem permissions.'),True,True)
+                    continue
+                else:
+                    # Do nothing - we're golden.
+                    pass
+
+            try:
+                os.mkdir(os.path.join(outdir,key))
+            except IOError:
+                log(_('Unable to create output directory. Check filesystem permissions.'),True,True)
+                continue
+
+            self.downloadSchedule(key,os.path.join(outdir,key))
+            rf = self.downloadRequiredFiles(key,os.path.join(outdir,key))
+
+            #TODO: Parse RF
+            #for file in rf:
+            #    self.downloadMedia(key,fileid,os.path.join(outdir,key))
+
+            # End for loop of displays
+            
+
         event.Skip()
 
     def onCancel(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
-        print "Event handler `onCancel' not implemented!"
+        if self.downloadThread != None:
+            # TODO: Terminate running thread
+            pass
         event.Skip()
 
     def onConfigSave(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -219,8 +297,10 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
     def onDisplayListClick(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         if len(self.selectedDisplays.GetSelections()) > 0:
             self.btnRemove.Enable()
+            self.btnDownload.Enable()
         else:
             self.btnRemove.Disable()
+            self.btnDownload.Disable()
         event.Skip()
 
     def onServerUrlChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>

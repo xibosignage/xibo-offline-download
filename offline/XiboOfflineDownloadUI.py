@@ -141,6 +141,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.selectedDisplays.SetMinSize((368, 300))
         self.btnRemove.Enable(False)
         self.txtOutput.SetMinSize((369, 300))
+        self.btnDownload.Enable(False)
         self.btnDownload.SetDefault()
         self.btnCancel.Enable(False)
         self.btnSave.Enable(False)
