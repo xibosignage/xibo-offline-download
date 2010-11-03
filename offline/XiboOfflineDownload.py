@@ -170,7 +170,21 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         event.Skip()
 
     def onDeleteDisplay(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
-        print "Event handler `onDeleteDisplay' not implemented!"
+        # Are you sure
+        dlg = wx.MessageDialog(self, _("Are you sure you want to delete the selected displays?"),_("Delete Displays?"),style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION|wx.STAY_ON_TOP)
+        if dlg.ShowModal() == wx.ID_YES:
+            # Get a list of selected Displays
+            selections = self.selectedDisplays.GetSelections()
+
+            for i in selections:
+                display = self.selectedDisplays.GetString(i)
+                config.remove_section(display)
+                log(_('Removed display %s') % display,True,True)
+
+            self.saveConfig()
+            self.updateDisplays()
+        
+        dlg.Destroy()        
         event.Skip()
 
     def onDownload(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -247,7 +261,7 @@ class AddDisplay(AddDisplayUI):
             return
 
         # Actually Add the Display
-        xmds = XMDS(self.txtClientKey.GetValue(),self.txtClientName.GetValue(),config.get('Main','xmdsKey'),self.__parent.txtOutput)
+        xmds = XMDS(self.txtClientKey.GetValue(),self.txtClientName.GetValue(),config.get('Main','xmdsKey'))
         try:
             xmds.RegisterDisplay()
         except XMDSException:
@@ -313,7 +327,7 @@ class XMDSException(Exception):
         return repr(self.value)
 
 class XMDS:
-    def __init__(self,licenseKey,clientName,serverKey,logWindow):
+    def __init__(self,licenseKey,clientName,serverKey):
         self.__schemaVersion__ = "2";
 
         # Semaphore to allow only one XMDS call to run check simultaneously
@@ -324,7 +338,6 @@ class XMDS:
         self.uuid = licenseKey
         self.name = clientName
         self.key = serverKey
-        self.logWindow = logWindow
 
         self.socketTimeout = None
         try:
@@ -334,9 +347,9 @@ class XMDS:
         
         try:
             socket.setdefaulttimeout(self.socketTimeout)
-#            log.log(2,"info",_("Set socket timeout to: ") + str(self.socketTimeout))
+            log(_("Set socket timeout to: ") + str(self.socketTimeout))
         except:
-#            log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
+            log(_("Unable to set socket timeout. Using system default"))
             pass
             
         # Setup a Proxy for XMDS
@@ -347,12 +360,10 @@ class XMDS:
                 self.xmdsUrl = self.xmdsUrl + "/"
             self.xmdsUrl = self.xmdsUrl + "xmds.php"
         except ConfigParser.NoOptionError:
-#            log.log(0,"error",_("No XMDS URL specified in your configuration"))
-#            log.log(0,"error",_("Please check your xmdsUrl configuration option"))
-#            exit(1)
-            pass
+            log(_("No XMDS URL specified in your configuration"),True,True)
+            log(_("Please check your xmdsUrl configuration option"),True,True)
         except IndexError:
-            print "Invalid XMDS URL. Check configuration."
+            log(_("Invalid XMDS URL. Check configuration."),True,True)
 
         # Work out the URL for XMDS and add HTTP URL quoting (ie %xx)
         self.wsdlFile = self.xmdsUrl + '?wsdl'
@@ -538,7 +549,7 @@ class XMDS:
 
         if self.check():
             try:
-                self.logWindow.AppendText(self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__))
+                log(self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__),True,True)
 #                log.lights('RD','green')
             except SOAPpy.Types.faultType, err:
 #                log.lights('RD','red')
