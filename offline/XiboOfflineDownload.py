@@ -34,6 +34,7 @@ import uuid
 from threading import Thread, Semaphore
 import urlparse
 import xml.parsers.expat
+from xml.dom import minidom
 from SOAPpy import WSDL
 import SOAPpy.Types
 import SOAPpy.Errors
@@ -405,6 +406,8 @@ class XMDSDownloadThread(Thread):
         Thread.__init__(self)
         self.__parent = parent
         self.__q = downloadQueue
+        self.xmds = None
+        self.__serverKey = config.get('Main','xmdsKey')
 
     def run(self):
         log('Starting Download Thread')
@@ -415,9 +418,9 @@ class XMDSDownloadThread(Thread):
                 key = display['key']
                 name = display['name']
                 outdir = display['outdir']
+                self.xmds = XMDS(key,name,self.__serverKey)
 
                 log('Processing display %s' % name)
-                print 'Processing display %s' % name
     
                 self.downloadSchedule(key,outdir)
                 rf = self.downloadRequiredFiles(key,outdir)
@@ -429,7 +432,6 @@ class XMDSDownloadThread(Thread):
                     filetype = tmpFile['filetype']
 
                     log('Processing file %s for display %s' % (fileid,name))
-                    print 'Processing file %s for display %s' % (fileid,name)
 
                     if filetype == 'media':
                         self.downloadMedia()
@@ -439,26 +441,80 @@ class XMDSDownloadThread(Thread):
         except Queue.Empty:
             # Queue is empty.
             log('Download Queue is empty')
-            print 'Download Queue is empty'
 
         self.__parent.finishedDownload()
 
     def downloadSchedule(self,key,outdir):
-        # TODO: Implement
-        print 'Download Schedule [IN]'
+        log('Download Schedule [IN]')
+        schedule = '<schedule/>'
+
+        try:
+            schedule = self.xmds.Schedule()
+            f = open(os.path.join(outdir,'schedule.xml'),'w')
+            f.write(schedule)
+            f.close()
+        except IOError:
+            log('Error writing schedule to disk',True,True)
+        except XMDSException:
+            log('Error communicating with the server',True,True)
+
         return
 
     def downloadRequiredFiles(self,key,outdir):
         # Download RF, save to disk and return a list of dicts of files
         # rf = [{'fileid':1, 'size':49320, 'checksum':'<checksum!>', 'filetype':'media'}]
         # TODO: Implement
-        print 'Download Required Files [IN]'
-        return []
+        rfRet = []
+
+        log('Download Required Files [IN]')
+
+        reqFiles = '<files></files>'
+        try:
+            reqFiles = self.xmds.RequiredFiles()
+            # print reqFiles
+
+            f = open(os.path.join(outdir,'rf.xml'),'w')
+            f.write(reqFiles)
+            f.close()
+        except IOError:
+            log('Error writing required files to disk',True,True)
+            return []
+        except XMDSException:
+            log('Error communicating with the server',True,True)
+            return []         
+
+        doc = None
+        # Pull apart the retuned XML
+        try:
+            doc = minidom.parseString(reqFiles)
+        except:
+            log(_("XMDS RequiredFiles returned invalid XML"),True,True)
+            return []
+        
+        fileNodes = doc.getElementsByTagName('file')
+        for f in fileNodes:
+            try:
+                tmpFileName = str(f.attributes['path'].value)
+                tmpSize = int(f.attributes['size'].value)
+                tmpHash = str(f.attributes['md5'].value)
+                tmpType = str(f.attributes['type'].value)
+            
+                rfRet.append({ 'fileid': tmpFileName,
+                               'size': tmpSize,
+                               'checksum': tmpHash,
+                               'filetype': tmpType })
+
+            except KeyError:
+                pass
+
+        return rfRet
 
     def downloadMedia(self):
+        log('downloadMedia [IN]')
         return
 
     def downloadLayout(self):
+        log('downloadLayout [IN]')
         return
 
 #### Webservice
