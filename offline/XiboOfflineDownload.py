@@ -40,6 +40,7 @@ import SOAPpy.Errors
 import socket
 import hashlib
 import shutil
+import Queue
 
 class XiboOfflineDownload(XiboOfflineDownloadUI):
 
@@ -51,6 +52,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         # Define Variables
         self.AddDisplayDialog = None
         self.downloadThread = None
+
+        # Queue for download requests
+        self.downloadQueue = Queue.Queue()
 
         # Figure out where our config is saved
         self.__config_path = os.path.expanduser('~')
@@ -106,9 +110,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
     def writeLog(self,message,appendLineBreak=True,important=False):
         if verbose or important:
-            self.txtOutput.AppendText(message)
+            wx.CallAfter(self.txtOutput.AppendText, message)
             if appendLineBreak:
-                self.txtOutput.AppendText('\n')
+                wx.CallAfter(self.txtOutput.AppendText, '\n')
 
     def getConfigFile(self):
         return self.__config_file
@@ -124,13 +128,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
         return True
 
-    def downloadSchedule(self,key,outdir):
-        # TODO: Implement
-        return
-
-    def downloadRequiredFiles(self,key,outdir):
-        # TODO: Implement
-        return []
+    def finishedDownload(self):
+        log('Finished Download',True,True)
+        self.btnDownload.Enable()
 
     # Event Handlers
     def onSelectAll(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -202,6 +202,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         event.Skip()
 
     def onDownload(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        # Disable Download Button
+        self.btnDownload.Disable()
+
         try:
             outdir = config.get('Main','outDir')
         except ConfigParser.NoOptionError:
@@ -255,15 +258,13 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
                 log(_('Unable to create output directory. Check filesystem permissions.'),True,True)
                 continue
 
-            self.downloadSchedule(key,os.path.join(outdir,key))
-            rf = self.downloadRequiredFiles(key,os.path.join(outdir,key))
+            displayDict = {'name': display, 'key': key, 'outdir': os.path.join(outdir,key)}
+            self.downloadQueue.put(displayDict)
+            # Finish while loop for displays
 
-            #TODO: Parse RF
-            #for file in rf:
-            #    self.downloadMedia(key,fileid,os.path.join(outdir,key))
-
-            # End for loop of displays
-            
+        # Push the queue in to a download thread and start it running
+        self.downloadThread = XMDSDownloadThread(self,self.downloadQueue)
+        self.downloadThread.start()
 
         event.Skip()
 
@@ -398,6 +399,67 @@ class AddDisplay(AddDisplayUI):
 
     def setParent(self,parent):
         self.__parent = parent
+
+class XMDSDownloadThread(Thread):
+    def __init__(self,parent,downloadQueue):
+        Thread.__init__(self)
+        self.__parent = parent
+        self.__q = downloadQueue
+
+    def run(self):
+        log('Starting Download Thread')
+        try:
+            while True:
+                # While loop will be broken by Queue empty exception
+                display = self.__q.get(False)
+                key = display['key']
+                name = display['name']
+                outdir = display['outdir']
+
+                log('Processing display %s' % name)
+                print 'Processing display %s' % name
+    
+                self.downloadSchedule(key,outdir)
+                rf = self.downloadRequiredFiles(key,outdir)
+
+                for tmpFile in rf:
+                    fileid = tmpFile['fileid']
+                    size = tmpFile['size']
+                    checksum = tmpFile['checksum']
+                    filetype = tmpFile['filetype']
+
+                    log('Processing file %s for display %s' % (fileid,name))
+                    print 'Processing file %s for display %s' % (fileid,name)
+
+                    if filetype == 'media':
+                        self.downloadMedia()
+                    else:
+                        self.downloadLayout()
+
+        except Queue.Empty:
+            # Queue is empty.
+            log('Download Queue is empty')
+            print 'Download Queue is empty'
+
+        self.__parent.finishedDownload()
+
+    def downloadSchedule(self,key,outdir):
+        # TODO: Implement
+        print 'Download Schedule [IN]'
+        return
+
+    def downloadRequiredFiles(self,key,outdir):
+        # Download RF, save to disk and return a list of dicts of files
+        # rf = [{'fileid':1, 'size':49320, 'checksum':'<checksum!>', 'filetype':'media'}]
+        # TODO: Implement
+        print 'Download Required Files [IN]'
+        return []
+
+    def downloadMedia(self):
+        return
+
+    def downloadLayout(self):
+        return
 
 #### Webservice
 class XMDSException(Exception):
