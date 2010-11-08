@@ -72,17 +72,8 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         print _("Reading user configuration")
         config.read([self.__config_file])
 
-        global verbose
-        try:
-            verbose = config.getboolean('Main','verbose')
-        except ValueError:
-            config.set('Main','verbose','false')
-            self.saveConfig()
-            verbose = False
-
         # Setup the GUI with options from the config file
-        if verbose:
-            self.chkVerbose.SetValue(True)
+        self.chkVerbose.SetValue(config.getboolean('Main','verbose'))
 
         if config.get('Main','xmdsUrl') != '':
             self.txtServerURL.WriteText(config.get('Main','xmdsUrl'))
@@ -110,7 +101,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         self.selectedDisplays.Set(displayNames)
 
     def writeLog(self,message,appendLineBreak=True,important=False):
-        if verbose or important:
+        if config.getboolean('Main','verbose') or important:
             wx.CallAfter(self.txtOutput.AppendText, message)
             if appendLineBreak:
                 wx.CallAfter(self.txtOutput.AppendText, '\n')
@@ -131,6 +122,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
     def finishedDownload(self):
         log('Finished Download',True,True)
+        log('===================================',True,True)
         self.btnDownload.Enable()
 
     # Event Handlers
@@ -434,9 +426,9 @@ class XMDSDownloadThread(Thread):
                     log('Processing file %s for display %s' % (fileid,name))
 
                     if filetype == 'media':
-                        self.downloadMedia()
+                        self.downloadMedia(tmpFile,outdir)
                     else:
-                        self.downloadLayout()
+                        self.downloadLayout(tmpFile,outdir)
 
         except Queue.Empty:
             # Queue is empty.
@@ -463,7 +455,6 @@ class XMDSDownloadThread(Thread):
     def downloadRequiredFiles(self,key,outdir):
         # Download RF, save to disk and return a list of dicts of files
         # rf = [{'fileid':1, 'size':49320, 'checksum':'<checksum!>', 'filetype':'media'}]
-        # TODO: Implement
         rfRet = []
 
         log('Download Required Files [IN]')
@@ -505,16 +496,175 @@ class XMDSDownloadThread(Thread):
                                'filetype': tmpType })
 
             except KeyError:
+                # Pass over blacklist nodes
                 pass
 
         return rfRet
 
-    def downloadMedia(self):
+    def downloadMedia(self,tmpFile,outdir):
         log('downloadMedia [IN]')
+
+        fileid = tmpFile['fileid']
+        size = tmpFile['size']
+        checksum = tmpFile['checksum']
+        filetype = tmpFile['filetype']
+        tmpPath = os.path.join(outdir,fileid)
+
+        # Check if the file already exists
+        download = False
+
+        if not os.path.isfile(tmpPath):
+            # File doesn't exist at all
+            download = True
+        elif not os.path.getsize(tmpPath) == size:
+            # File is incorrect size
+            download = True
+#        elif not checksum == checksum:
+            # File checksum is wrong
+#            download = True
+
+        if download:
+            # Do the download as it's needed
+
+            # Delete the file if it exists already            
+            if os.path.isfile(tmpPath):
+                try:
+                    os.remove(tmpPath)
+                except:
+                    log(_("Unable to delete file: ") + tmpPath, True, True)
+                    return
+
+            fh = None
+            try:
+                fh = open(tmpPath, 'wb')
+            except:
+                log(_("Unable to write file: ") + tmpPath, True, True)
+                return
+
+            tries = 0
+            offset = 0
+            chunk = 512000
+            finished = False
+
+            while tries < 5 and not finished:
+                tries = tries + 1
+                failCounter = 0
+                while offset < size and failCounter < 3:
+                    # If downloading this chunk will complete the file
+                    # work out exactly how much to download this time
+                    if offset + chunk > size:
+                        chunk = size - offset
+
+                    try:
+                        response = self.xmds.GetFile(fileid,filetype,offset,chunk)
+                        fh.write(response)
+                        fh.flush()
+                        offset = offset + chunk
+                        failCounter = 0
+                    except RuntimeError:
+                        # TODO: Do something sensible
+                        pass
+                    except XMDSException:
+                        # TODO: Do something sensible
+                        failCounter = failCounter + 1
+                    except ValueError:
+                        finished = True
+                        break
+
+                # End while offset<tmpSize
+                try:
+                    fh.close()
+                except:
+                    # TODO: Do something sensible
+                    pass
+
+                # TODO: Check size/md5 here?
+
+            # End while
+
         return
 
-    def downloadLayout(self):
+    def downloadLayout(self,tmpFile,outdir):
         log('downloadLayout [IN]')
+
+        fileid = tmpFile['fileid']
+        filename = tmpFile['fileid'] + '.xlf'
+        size = tmpFile['size']
+        checksum = tmpFile['checksum']
+        filetype = tmpFile['filetype']
+
+        tmpPath = os.path.join(outdir,filename)
+
+        # Check if the file already exists
+        download = False
+
+        if not os.path.isfile(tmpPath):
+            # File doesn't exist at all
+            download = True
+        elif not os.path.getsize(tmpPath) == size:
+            # File is incorrect size
+            download = True
+#        elif not checksum == checksum:
+            # File checksum is wrong
+#            download = True
+
+        if download:
+            # Do the download as it's needed
+
+            # Delete the file if it exists already            
+            if os.path.isfile(tmpPath):
+                try:
+                    os.remove(tmpPath)
+                except:
+                    log(_("Unable to delete file: ") + tmpPath, True, True)
+                    return
+
+            fh = None
+            try:
+                fh = open(tmpPath, 'wb')
+            except:
+                log(_("Unable to write file: ") + tmpPath, True, True)
+                return
+
+            tries = 0
+            offset = 0
+            chunk = 0
+            finished = False
+
+            while tries < 5 and not finished:
+                tries = tries + 1
+                failCounter = 0
+
+                # If downloading this chunk will complete the file
+                # work out exactly how much to download this time
+                if offset + chunk > size:
+                    chunk = size - offset
+
+                try:
+                    response = self.xmds.GetFile(filename,filetype,offset,chunk)
+                    fh.write(response)
+                    fh.flush()
+                    offset = offset + chunk
+                    failCounter = 0
+                except RuntimeError:
+                    # TODO: Do something sensible
+                    pass
+                except XMDSException:
+                    # TODO: Do something sensible
+                    failCounter = failCounter + 1
+                except ValueError:
+                    finished = True
+                    break
+
+
+                try:
+                    fh.close()
+                except:
+                    # TODO: Do something sensible
+                    pass
+                # TODO: Check size/md5 here?
+
+            # End while
         return
 
 #### Webservice
