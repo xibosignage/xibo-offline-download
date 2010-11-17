@@ -123,6 +123,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
     def finishedDownload(self):
         log('Finished Download',True,True)
         log('===================================',True,True)
+        self.btnCancel.Disable()
         self.btnDownload.Enable()
 
     # Event Handlers
@@ -198,6 +199,9 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         # Disable Download Button
         self.btnDownload.Disable()
 
+        # Enable Cancel Button
+        self.btnCancel.Enable()
+
         try:
             outdir = config.get('Main','outDir')
         except ConfigParser.NoOptionError:
@@ -263,8 +267,10 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
     def onCancel(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         if self.downloadThread != None:
-            # TODO: Terminate running thread
-            pass
+            # Ask running thread to stop
+            self.downloadThread.requestStop()
+            self.btnCancel.Disable()
+            log(_('Cancelling...'),True,True)
         event.Skip()
 
     def onConfigSave(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -401,11 +407,16 @@ class XMDSDownloadThread(Thread):
         self.xmds = None
         self.__serverKey = config.get('Main','xmdsKey')
 
+        # Flag that exits the downloader if requested.
+        self.__running = False
+
     def run(self):
+        self.__running = True
+
         log('Starting Download Thread')
         try:
-            while True:
-                # While loop will be broken by Queue empty exception
+            while self.__running:
+                # While loop will be broken by Queue empty exception if we're not cancelled
                 display = self.__q.get(False)
                 key = display['key']
                 name = display['name']
@@ -418,22 +429,24 @@ class XMDSDownloadThread(Thread):
                 rf = self.downloadRequiredFiles(key,outdir)
 
                 for tmpFile in rf:
-                    fileid = tmpFile['fileid']
-                    size = tmpFile['size']
-                    checksum = tmpFile['checksum']
-                    filetype = tmpFile['filetype']
+                    if self.__running:
+                        fileid = tmpFile['fileid']
+                        size = tmpFile['size']
+                        checksum = tmpFile['checksum']
+                        filetype = tmpFile['filetype']
 
-                    log('Processing file %s for display %s' % (fileid,name))
+                        log('Processing file %s for display %s' % (fileid,name))
 
-                    if filetype == 'media':
-                        self.downloadMedia(tmpFile,outdir)
-                    else:
-                        self.downloadLayout(tmpFile,outdir)
+                        if filetype == 'media':
+                            self.downloadMedia(tmpFile,outdir)
+                        else:
+                            self.downloadLayout(tmpFile,outdir)
 
         except Queue.Empty:
             # Queue is empty.
             log('Download Queue is empty')
 
+        self.__running = False
         self.__parent.finishedDownload()
 
     def downloadSchedule(self,key,outdir):
@@ -546,10 +559,10 @@ class XMDSDownloadThread(Thread):
             chunk = 512000
             finished = False
 
-            while tries < 5 and not finished:
+            while self.__running and tries < 5 and not finished:
                 tries = tries + 1
                 failCounter = 0
-                while offset < size and failCounter < 3:
+                while self.__running and offset < size and failCounter < 3:
                     # If downloading this chunk will complete the file
                     # work out exactly how much to download this time
                     if offset + chunk > size:
@@ -631,7 +644,7 @@ class XMDSDownloadThread(Thread):
             chunk = 0
             finished = False
 
-            while tries < 5 and not finished:
+            while self.__running and tries < 5 and not finished:
                 tries = tries + 1
                 failCounter = 0
 
@@ -666,6 +679,10 @@ class XMDSDownloadThread(Thread):
 
             # End while
         return
+    
+    def requestStop(self):
+        # Signal that we should abort
+        self.__running = False
 
 #### Webservice
 class XMDSException(Exception):
