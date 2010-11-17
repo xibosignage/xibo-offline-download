@@ -88,7 +88,7 @@ class AddDisplayUI(wx.Dialog):
 class XiboOfflineDownloadUI(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: XiboOfflineDownloadUI.__init__
-        kwds["style"] = wx.DEFAULT_FRAME_STYLE
+        kwds["style"] = wx.ICONIZE|wx.CAPTION|wx.MINIMIZE|wx.CLOSE_BOX|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.SYSTEM_MENU|wx.FRAME_TOOL_WINDOW|wx.CLIP_CHILDREN
         wx.Frame.__init__(self, *args, **kwds)
         self.Tabs = wx.Notebook(self, -1, style=0)
         self.Tabs_Displays = wx.Panel(self.Tabs, -1)
@@ -105,6 +105,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.txtOutput = wx.TextCtrl(self.Tabs_Download, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_LINEWRAP)
         self.btnDownload = wx.Button(self.Tabs_Download, -1, _("Download"))
         self.btnCancel = wx.Button(self.Tabs_Download, -1, _("Cancel"))
+        self.gaProgress = wx.Gauge(self.Tabs_Download, -1, 100, style=wx.GA_HORIZONTAL|wx.GA_SMOOTH)
         self.lblServerURL = wx.StaticText(self.Tabs_Displays, -1, _("Server URL"))
         self.txtServerURL = wx.TextCtrl(self.Tabs_Displays, -1, "")
         self.lblServerKey = wx.StaticText(self.Tabs_Displays, -1, _("Server Key"))
@@ -138,12 +139,13 @@ class XiboOfflineDownloadUI(wx.Frame):
         # begin wxGlade: XiboOfflineDownloadUI.__set_properties
         self.SetTitle(_("Xibo Offline Download Application"))
         self.SetSize((750, 500))
-        self.selectedDisplays.SetMinSize((368, 300))
+        self.selectedDisplays.SetMinSize((350, 300))
         self.btnRemove.Enable(False)
         self.txtOutput.SetMinSize((369, 300))
         self.btnDownload.Enable(False)
         self.btnDownload.SetDefault()
         self.btnCancel.Enable(False)
+        self.gaProgress.SetToolTipString(_("Download Progress"))
         self.btnSave.Enable(False)
         # end wxGlade
 
@@ -168,12 +170,14 @@ class XiboOfflineDownloadUI(wx.Frame):
         grid_sizer_1.AddGrowableCol(0)
         sizer_5.Add(grid_sizer_1, 1, wx.EXPAND, 10)
         tabDownloadSizer.Add(sizer_5, 1, 0, 0)
-        tabDownloadSizer.Add((20, 20), 0, 0, 0)
+        tabDownloadSizer.Add((5, 20), 0, wx.EXPAND, 0)
         sizer_6.Add(self.txtOutput, 0, 0, 0)
         sizer_7.Add(self.btnDownload, 0, 0, 0)
         sizer_7.Add(self.btnCancel, 0, 0, 0)
         sizer_6.Add(sizer_7, 1, wx.ALIGN_RIGHT, 0)
+        sizer_6.Add(self.gaProgress, 0, wx.EXPAND, 0)
         tabDownloadSizer.Add(sizer_6, 1, wx.EXPAND, 0)
+        tabDownloadSizer.Add((5, 20), 0, wx.EXPAND, 0)
         self.Tabs_Download.SetSizer(tabDownloadSizer)
         grid_sizer_2.Add(self.lblServerURL, 0, wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 0)
         grid_sizer_2.Add(self.txtServerURL, 0, wx.EXPAND, 0)
@@ -189,6 +193,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.Tabs.AddPage(self.Tabs_Displays, _("Configuration"))
         frmMainSizer.Add(self.Tabs, 1, wx.EXPAND, 0)
         frmMainSizer.Add(self.lnHorizontalLine, 0, wx.EXPAND, 0)
+        frmMainSizer.Add((20, 5), 0, wx.EXPAND, 0)
         frmMainSizer.Add(self.Logo, 0, wx.ALL|wx.EXPAND|wx.ALIGN_BOTTOM, 0)
         self.SetSizer(frmMainSizer)
         self.Layout()

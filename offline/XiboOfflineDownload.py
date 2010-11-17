@@ -120,11 +120,15 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
         return True
 
+    def updateProgressBar(self,value):
+        wx.CallAfter(self.gaProgress.SetValue, value)
+
     def finishedDownload(self):
         log('Finished Download',True,True)
         log('===================================',True,True)
         self.btnCancel.Disable()
         self.btnDownload.Enable()
+        self.updateProgressBar(0)
 
     # Event Handlers
     def onSelectAll(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
@@ -198,6 +202,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
     def onDownload(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         # Disable Download Button
         self.btnDownload.Disable()
+        self.updateProgressBar(0)
 
         # Enable Cancel Button
         self.btnCancel.Enable()
@@ -259,6 +264,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
             self.downloadQueue.put(displayDict)
             # Finish while loop for displays
 
+        self.updateProgressBar(2)
         # Push the queue in to a download thread and start it running
         self.downloadThread = XMDSDownloadThread(self,self.downloadQueue)
         self.downloadThread.start()
@@ -428,6 +434,16 @@ class XMDSDownloadThread(Thread):
                 self.downloadSchedule(key,outdir)
                 rf = self.downloadRequiredFiles(key,outdir)
 
+                self.__parent.updateProgressBar(5)
+
+                # Work out total size for this display
+                tSize = 0
+                for tmpFile in rf:
+                    tSize = tSize + tmpFile['size']
+
+                self.__tIncrement = 95.0 / tSize
+                self.__tProgBar = 5
+
                 for tmpFile in rf:
                     if self.__running:
                         fileid = tmpFile['fileid']
@@ -572,6 +588,10 @@ class XMDSDownloadThread(Thread):
                         response = self.xmds.GetFile(fileid,filetype,offset,chunk)
                         fh.write(response)
                         fh.flush()
+
+                        self.__tProgBar = int(self.__tIncrement * chunk) + self.__tProgBar
+                        self.__parent.updateProgressBar(self.__tProgBar)
+
                         offset = offset + chunk
                         failCounter = 0
                     except RuntimeError:
@@ -657,6 +677,10 @@ class XMDSDownloadThread(Thread):
                     response = self.xmds.GetFile(filename,filetype,offset,chunk)
                     fh.write(response)
                     fh.flush()
+
+                    self.__tProgBar = int(self.__tIncrement * len(response)) + self.__tProgBar
+                    self.__parent.updateProgressBar(self.__tProgBar)
+
                     offset = offset + chunk
                     failCounter = 0
                 except RuntimeError:
