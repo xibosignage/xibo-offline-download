@@ -125,7 +125,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
     def finishedDownload(self):
         log('Finished Download',True,True)
-        log('===================================',True,True)
+        log('===============================',True,True)
         self.btnCancel.Disable()
         self.btnDownload.Enable()
         self.updateProgressBar(0)
@@ -429,7 +429,7 @@ class XMDSDownloadThread(Thread):
                 outdir = display['outdir']
                 self.xmds = XMDS(key,name,self.__serverKey)
 
-                log('Processing display %s' % name)
+                log('Processing Display %s' % name, True, True)
     
                 self.downloadSchedule(key,outdir)
                 rf = self.downloadRequiredFiles(key,outdir)
@@ -437,7 +437,7 @@ class XMDSDownloadThread(Thread):
                 self.__parent.updateProgressBar(5)
 
                 # Work out total size for this display
-                tSize = 0
+                tSize = 0.00000001
                 for tmpFile in rf:
                     tSize = tSize + tmpFile['size']
 
