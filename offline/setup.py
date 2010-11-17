@@ -8,8 +8,13 @@ options = {"py2exe": { "compressed": 1,
                            "bundle_files": 1,
                            "includes": [ "encodings.utf_8",],
 						   "dll_excludes":["MSVCP90.dll"],}},
-      windows=["XiboOfflineDownload.py",],
-      data_files=[(".",
-                   ["logo.jpg","defaults.cfg"])],
+    windows = [
+        {
+            "script": "XiboOfflineDownload.py",
+            "icon_resources": [(1, "xibo.ico")]
+        }
+    ],
+    data_files=[(".",
+                   ["logo.jpg","defaults.cfg","xibo.ico"])],
 )
 

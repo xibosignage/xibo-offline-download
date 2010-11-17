@@ -36,6 +36,9 @@ class AddDisplayUI(wx.Dialog):
     def __set_properties(self):
         # begin wxGlade: AddDisplayUI.__set_properties
         self.SetTitle(_("Add Display"))
+        _icon = wx.EmptyIcon()
+        _icon.CopyFromBitmap(wx.Bitmap("xibo.ico", wx.BITMAP_TYPE_ANY))
+        self.SetIcon(_icon)
         self.txtClientName.SetToolTipString(_("The name of the client to add as it will appear on the server"))
         self.btnCreateDisplay.Enable(False)
         self.btnGenerateKey.SetToolTipString(_("Generate a random client license key"))
@@ -88,7 +91,7 @@ class AddDisplayUI(wx.Dialog):
 class XiboOfflineDownloadUI(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: XiboOfflineDownloadUI.__init__
-        kwds["style"] = wx.ICONIZE|wx.CAPTION|wx.MINIMIZE|wx.CLOSE_BOX|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.SYSTEM_MENU|wx.FRAME_TOOL_WINDOW|wx.CLIP_CHILDREN
+        kwds["style"] = wx.ICONIZE|wx.CAPTION|wx.MINIMIZE|wx.CLOSE_BOX|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.SYSTEM_MENU|wx.CLIP_CHILDREN
         wx.Frame.__init__(self, *args, **kwds)
         self.Tabs = wx.Notebook(self, -1, style=0)
         self.Tabs_Displays = wx.Panel(self.Tabs, -1)
@@ -138,6 +141,9 @@ class XiboOfflineDownloadUI(wx.Frame):
     def __set_properties(self):
         # begin wxGlade: XiboOfflineDownloadUI.__set_properties
         self.SetTitle(_("Xibo Offline Download Application"))
+        _icon = wx.EmptyIcon()
+        _icon.CopyFromBitmap(wx.Bitmap("xibo.ico", wx.BITMAP_TYPE_ANY))
+        self.SetIcon(_icon)
         self.SetSize((750, 500))
         self.selectedDisplays.SetMinSize((350, 300))
         self.btnRemove.Enable(False)
