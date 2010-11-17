@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 
 # Static Variables
-VERSION = '1.2.1a1'
+VERSION = '1.2.1a2'
 APP_NAME = 'Xibo Offline Download Client'
 
 # Imports

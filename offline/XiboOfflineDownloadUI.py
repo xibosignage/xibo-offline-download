@@ -91,7 +91,7 @@ class AddDisplayUI(wx.Dialog):
 class XiboOfflineDownloadUI(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: XiboOfflineDownloadUI.__init__
-        kwds["style"] = wx.ICONIZE|wx.CAPTION|wx.MINIMIZE|wx.CLOSE_BOX|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.SYSTEM_MENU|wx.CLIP_CHILDREN
+        kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         self.Tabs = wx.Notebook(self, -1, style=0)
         self.Tabs_Displays = wx.Panel(self.Tabs, -1)
@@ -199,7 +199,6 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.Tabs.AddPage(self.Tabs_Displays, _("Configuration"))
         frmMainSizer.Add(self.Tabs, 1, wx.EXPAND, 0)
         frmMainSizer.Add(self.lnHorizontalLine, 0, wx.EXPAND, 0)
-        frmMainSizer.Add((20, 5), 0, wx.EXPAND, 0)
         frmMainSizer.Add(self.Logo, 0, wx.ALL|wx.EXPAND|wx.ALIGN_BOTTOM, 0)
         self.SetSizer(frmMainSizer)
         self.Layout()
