@@ -116,6 +116,8 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.lblVerbose = wx.StaticText(self.Tabs_Displays, -1, _("Verbose Output"))
         self.chkVerbose = wx.CheckBox(self.Tabs_Displays, -1, "")
         self.panel_4 = wx.Panel(self.Tabs_Displays, -1)
+        self.btnExport = wx.Button(self.Tabs_Displays, -1, _("Export"))
+        self.btnImport = wx.Button(self.Tabs_Displays, -1, _("Import"))
         self.btnSave = wx.Button(self.Tabs_Displays, -1, _("Save"))
         self.lnHorizontalLine = wx.StaticLine(self, -1)
         self.Logo = wx.StaticBitmap(self, -1, wx.Bitmap("logo.jpg", wx.BITMAP_TYPE_ANY), style=wx.SUNKEN_BORDER)
@@ -135,6 +137,8 @@ class XiboOfflineDownloadUI(wx.Frame):
         self.Bind(wx.EVT_TEXT, self.onServerUrlChange, self.txtServerURL)
         self.Bind(wx.EVT_TEXT, self.onServerKeyChange, self.txtServerKey)
         self.Bind(wx.EVT_CHECKBOX, self.onVerboseChange, self.chkVerbose)
+        self.Bind(wx.EVT_BUTTON, self.onConfigExport, self.btnExport)
+        self.Bind(wx.EVT_BUTTON, self.onConfigImport, self.btnImport)
         self.Bind(wx.EVT_BUTTON, self.onConfigSave, self.btnSave)
         # end wxGlade
 
@@ -159,6 +163,7 @@ class XiboOfflineDownloadUI(wx.Frame):
         # begin wxGlade: XiboOfflineDownloadUI.__do_layout
         frmMainSizer = wx.BoxSizer(wx.VERTICAL)
         grid_sizer_2 = wx.FlexGridSizer(4, 2, 2, 2)
+        sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
         tabDownloadSizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
         sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
@@ -192,7 +197,11 @@ class XiboOfflineDownloadUI(wx.Frame):
         grid_sizer_2.Add(self.lblVerbose, 0, 0, 0)
         grid_sizer_2.Add(self.chkVerbose, 0, 0, 0)
         grid_sizer_2.Add(self.panel_4, 1, wx.EXPAND, 0)
-        grid_sizer_2.Add(self.btnSave, 0, wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 0)
+        sizer_2.Add(self.btnExport, 0, 0, 0)
+        sizer_2.Add(self.btnImport, 0, 0, 0)
+        sizer_2.Add((20, 5), 1, 0, 0)
+        sizer_2.Add(self.btnSave, 0, wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 0)
+        grid_sizer_2.Add(sizer_2, 2, wx.EXPAND, 3)
         self.Tabs_Displays.SetSizer(grid_sizer_2)
         grid_sizer_2.AddGrowableCol(1)
         self.Tabs.AddPage(self.Tabs_Download, _("Download"))
@@ -254,6 +263,14 @@ class XiboOfflineDownloadUI(wx.Frame):
 
     def onVerboseChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         print "Event handler `onVerboseChange' not implemented"
+        event.Skip()
+
+    def onConfigExport(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onConfigExport' not implemented"
+        event.Skip()
+
+    def onConfigImport(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        print "Event handler `onConfigImport' not implemented"
         event.Skip()
 
 # end of class XiboOfflineDownloadUI

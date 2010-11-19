@@ -69,20 +69,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         config = ConfigParser.ConfigParser()
         config.readfp(open('defaults.cfg'))
 
-        print _("Reading user configuration")
-        config.read([self.__config_file])
-
-        # Setup the GUI with options from the config file
-        self.chkVerbose.SetValue(config.getboolean('Main','verbose'))
-
-        if config.get('Main','xmdsUrl') != '':
-            self.txtServerURL.WriteText(config.get('Main','xmdsUrl'))
-
-        if config.get('Main','xmdsKey') != '':
-            self.txtServerKey.WriteText(config.get('Main','xmdsKey'))
-
-        # Add displays defined in the config file
-        self.updateDisplays()
+        self.readConfig()
 
 
     def updateDisplays(self):
@@ -109,16 +96,51 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
     def getConfigFile(self):
         return self.__config_file
 
-    def saveConfig(self):
+    def saveConfig(self,outFile=None):
+        if outFile == None:
+            outFile = self.__config_file
+
         try:
-            fh = open(self.getConfigFile(), 'w+')
+            fh = open(outFile, 'w+')
             config.write(fh)
             fh.close()
         except IOError:
-            log('Unable to write configuration file at %s. Check your filesystem permissions.' % self.__parent.getConfigFile(),True,True)
+            log('Unable to write configuration file at %s. Check your filesystem permissions.' % outFile,True,True)
             return False
 
         return True
+
+    def readConfig(self,inFile=None):
+        global config
+        global log
+
+        # Work out the file to read
+        if inFile == None:
+            inFile = self.__config_file
+
+        try:
+            print _("Reading user configuration")
+            config.read([inFile])
+
+            # Setup the GUI with options from the config file
+            self.chkVerbose.SetValue(config.getboolean('Main','verbose'))
+
+            if config.get('Main','xmdsUrl') != '':
+                self.txtServerURL.Clear()
+                self.txtServerURL.WriteText(config.get('Main','xmdsUrl'))
+
+            if config.get('Main','xmdsKey') != '':
+                self.txtServerKey.Clear()
+                self.txtServerKey.WriteText(config.get('Main','xmdsKey'))
+        except:
+            # Something went wrong reading config
+            # Load defaults again to be sure
+            print log('Invalid configuration file. Loading defaults.',True,True)
+            config = ConfigParser.ConfigParser()
+            config.readfp(open('defaults.cfg'))
+
+        # Add displays defined in the config file
+        self.updateDisplays()
 
     def updateProgressBar(self,value):
         wx.CallAfter(self.gaProgress.SetValue, value)
@@ -294,6 +316,37 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
 
         log('Configuration saved',True,True)
         self.btnSave.Disable()
+        event.Skip()
+
+    def onConfigExport(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        # Create a save file dialog
+        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT )
+
+        # Show the dialog and get user input
+        if dialog.ShowModal() == wx.ID_OK:
+            outFile = dialog.GetPath()
+            
+            # Save the config to file
+            self.saveConfig(outFile)
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        event.Skip()
+
+    def onConfigImport(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        # Create a file select dialog
+        dialog = wx.FileDialog(None, style=wx.OPEN)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            inFile = dialog.GetPath()
+
+            # Pass the config file in
+            self.readConfig(inFile)
+
+            # Save the new config
+            self.saveConfig()
+
         event.Skip()
 
     def onDisplayListDClick(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
