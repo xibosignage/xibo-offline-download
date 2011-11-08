@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 
 # Static Variables
-VERSION = '1.2.1a2'
+VERSION = '1.2.2a2'
 APP_NAME = 'Xibo Offline Download Client'
 
 # Imports
@@ -600,11 +600,14 @@ class XMDSDownloadThread(Thread):
 
         if not os.path.isfile(tmpPath):
             # File doesn't exist at all
+            log(_("Marking file %s for download as it doesn't exist.") % fileid)
             download = True
         elif not os.path.getsize(tmpPath) == size:
             # File is incorrect size
+            log(_("Marking file %s for download as it's not the right size.") % fileid)
             download = True
         elif not self.md5sum(tmpPath) == checksum:
+            log(_("Marking file %s for download as it's checksum doesn't match.") % fileid)
             # File checksum is wrong
             download = True
 
@@ -689,12 +692,15 @@ class XMDSDownloadThread(Thread):
 
         if not os.path.isfile(tmpPath):
             # File doesn't exist at all
+            log(_("Marking file %s.xlf for download as it doesn't exist.") % fileid)
             download = True
         elif not os.path.getsize(tmpPath) == size:
             # File is incorrect size
+            log(_("Marking file %s.xlf for download as it's not the correct size.") % fileid)
             download = True
         elif not self.md5sum(tmpPath) == checksum:
             # File checksum is wrong
+            log(_("Marking file %s.xlf for download as it's checksum doesn't match.") % fileid)
             download = True
 
         if download:
@@ -765,17 +771,17 @@ class XMDSDownloadThread(Thread):
         self.__running = False
 
     def md5sum(self,tmpPath):
-        md5 = hashlib.md5()
-        f = open(tmpPath, 'rb')
+        log(_("Calculating checksum for file %s") % tmpPath)
+        m = hashlib.md5()
+        
+        try:
+            for line in open(tmpPath,"rb"):
+                m.update(line)
+        except IOError:
+            return "0"
 
-        while True:
-            data = f.read(8192)
-            if not data:
-                break
-            md5.update(data)
-
-        f.close()
-        return md5.digest()
+        log(_("Checksum: %s") % m.hexdigest())
+        return m.hexdigest()
             
 
 #### Webservice
