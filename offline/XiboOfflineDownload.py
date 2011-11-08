@@ -266,21 +266,24 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
                 del displays[displays.index(display)]
                 continue
 
-            try:
-                shutil.rmtree(os.path.join(outdir,key))
-            except OSError:
-                if os.path.isdir(os.path.join(outdir,key)):
-                    log(_('Unable to remove old output directory. Check filesystem permissions.'),True,True)
-                    continue
-                else:
-                    # Do nothing - we're golden.
-                    pass
+            #try:
+            #    shutil.rmtree(os.path.join(outdir,key))
+            #except OSError:
+            #    if os.path.isdir(os.path.join(outdir,key)):
+            #        log(_('Unable to remove old output directory. Check filesystem permissions.'),True,True)
+            #        continue
+            #    else:
+            #        # Do nothing - we're golden.
+            #        pass
 
             try:
                 os.mkdir(os.path.join(outdir,key))
             except IOError:
                 log(_('Unable to create output directory. Check filesystem permissions.'),True,True)
                 continue
+            except OSError:
+                # Directory already exists. Do nothing
+                pass
 
             displayDict = {'name': display, 'key': key, 'outdir': os.path.join(outdir,key)}
             self.downloadQueue.put(displayDict)
@@ -601,9 +604,9 @@ class XMDSDownloadThread(Thread):
         elif not os.path.getsize(tmpPath) == size:
             # File is incorrect size
             download = True
-#        elif not checksum == checksum:
+        elif not self.md5sum(tmpPath) == checksum:
             # File checksum is wrong
-#            download = True
+            download = True
 
         if download:
             # Do the download as it's needed
@@ -690,9 +693,9 @@ class XMDSDownloadThread(Thread):
         elif not os.path.getsize(tmpPath) == size:
             # File is incorrect size
             download = True
-#        elif not checksum == checksum:
+        elif not self.md5sum(tmpPath) == checksum:
             # File checksum is wrong
-#            download = True
+            download = True
 
         if download:
             # Do the download as it's needed
@@ -760,6 +763,20 @@ class XMDSDownloadThread(Thread):
     def requestStop(self):
         # Signal that we should abort
         self.__running = False
+
+    def md5sum(self,tmpPath):
+        md5 = hashlib.md5()
+        f = open(tmpPath, 'rb')
+
+        while True:
+            data = f.read(8192)
+            if not data:
+                break
+            md5.update(data)
+
+        f.close()
+        return md5.digest()
+            
 
 #### Webservice
 class XMDSException(Exception):
