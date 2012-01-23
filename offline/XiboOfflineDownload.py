@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 
 # Static Variables
-VERSION = '1.2.2a2'
+VERSION = '1.2.2a3'
 APP_NAME = 'Xibo Offline Download Client'
 
 # Imports
@@ -254,6 +254,16 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         for i in selections:
             displays.append(self.selectedDisplays.GetString(i))
 
+        # Make the single instance library store if it doesn't exist
+        try:
+            os.mkdir(os.path.join(outdir,'library'))
+        except IOError:
+            log(_('Unable to create output directory. Check filesystem permissions.'),True,True)
+            return
+        except OSError:
+            # Directory already exists. Do nothing.
+            pass
+
         # Displays now contains a list of display names to download content for
         # Create output folders for each display key:
 
@@ -266,15 +276,17 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
                 del displays[displays.index(display)]
                 continue
 
-            #try:
-            #    shutil.rmtree(os.path.join(outdir,key))
-            #except OSError:
-            #    if os.path.isdir(os.path.join(outdir,key)):
-            #        log(_('Unable to remove old output directory. Check filesystem permissions.'),True,True)
-            #        continue
-            #    else:
-            #        # Do nothing - we're golden.
-            #        pass
+            # Delete the client folders. This converts from older style per display update format to
+            # new format automatically, and clears out any trash that might be in there too!
+            try:
+                shutil.rmtree(os.path.join(outdir,key))
+            except OSError:
+                if os.path.isdir(os.path.join(outdir,key)):
+                    log(_('Unable to remove old output directory. Check filesystem permissions.'),True,True)
+                    continue
+                else:
+                    # Do nothing - we're golden.
+                    pass
 
             try:
                 os.mkdir(os.path.join(outdir,key))
@@ -285,7 +297,7 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
                 # Directory already exists. Do nothing
                 pass
 
-            displayDict = {'name': display, 'key': key, 'outdir': os.path.join(outdir,key)}
+            displayDict = {'name': display, 'key': key, 'outdir': os.path.join(outdir,key), 'libdir': os.path.join(outdir,'library')}
             self.downloadQueue.put(displayDict)
             # Finish while loop for displays
 
@@ -483,6 +495,7 @@ class XMDSDownloadThread(Thread):
                 key = display['key']
                 name = display['name']
                 outdir = display['outdir']
+                libdir = display['libdir']
                 self.xmds = XMDS(key,name,self.__serverKey)
 
                 log('Processing Display %s' % name, True, True)
@@ -510,9 +523,9 @@ class XMDSDownloadThread(Thread):
                         log('Processing file %s for display %s' % (fileid,name))
 
                         if filetype == 'media':
-                            self.downloadMedia(tmpFile,outdir)
+                            self.downloadMedia(tmpFile,libdir)
                         else:
-                            self.downloadLayout(tmpFile,outdir)
+                            self.downloadLayout(tmpFile,libdir)
 
         except Queue.Empty:
             # Queue is empty.
