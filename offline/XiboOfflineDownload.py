@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 
 # Static Variables
-VERSION = '1.2.1a2'
+VERSION = '1.2.2a3'
 APP_NAME = 'Xibo Offline Download Client'
 
 # Imports
@@ -254,6 +254,16 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         for i in selections:
             displays.append(self.selectedDisplays.GetString(i))
 
+        # Make the single instance library store if it doesn't exist
+        try:
+            os.mkdir(os.path.join(outdir,'library'))
+        except IOError:
+            log(_('Unable to create output directory. Check filesystem permissions.'),True,True)
+            return
+        except OSError:
+            # Directory already exists. Do nothing.
+            pass
+
         # Displays now contains a list of display names to download content for
         # Create output folders for each display key:
 
@@ -266,6 +276,8 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
                 del displays[displays.index(display)]
                 continue
 
+            # Delete the client folders. This converts from older style per display update format to
+            # new format automatically, and clears out any trash that might be in there too!
             try:
                 shutil.rmtree(os.path.join(outdir,key))
             except OSError:
@@ -281,8 +293,11 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
             except IOError:
                 log(_('Unable to create output directory. Check filesystem permissions.'),True,True)
                 continue
+            except OSError:
+                # Directory already exists. Do nothing
+                pass
 
-            displayDict = {'name': display, 'key': key, 'outdir': os.path.join(outdir,key)}
+            displayDict = {'name': display, 'key': key, 'outdir': os.path.join(outdir,key), 'libdir': os.path.join(outdir,'library')}
             self.downloadQueue.put(displayDict)
             # Finish while loop for displays
 
@@ -480,6 +495,7 @@ class XMDSDownloadThread(Thread):
                 key = display['key']
                 name = display['name']
                 outdir = display['outdir']
+                libdir = display['libdir']
                 self.xmds = XMDS(key,name,self.__serverKey)
 
                 log('Processing Display %s' % name, True, True)
@@ -507,9 +523,9 @@ class XMDSDownloadThread(Thread):
                         log('Processing file %s for display %s' % (fileid,name))
 
                         if filetype == 'media':
-                            self.downloadMedia(tmpFile,outdir)
+                            self.downloadMedia(tmpFile,libdir)
                         else:
-                            self.downloadLayout(tmpFile,outdir)
+                            self.downloadLayout(tmpFile,libdir)
 
         except Queue.Empty:
             # Queue is empty.
@@ -597,13 +613,16 @@ class XMDSDownloadThread(Thread):
 
         if not os.path.isfile(tmpPath):
             # File doesn't exist at all
+            log(_("Marking file %s for download as it doesn't exist.") % fileid)
             download = True
         elif not os.path.getsize(tmpPath) == size:
             # File is incorrect size
+            log(_("Marking file %s for download as it's not the right size.") % fileid)
             download = True
-#        elif not checksum == checksum:
+        elif not self.md5sum(tmpPath) == checksum:
+            log(_("Marking file %s for download as it's checksum doesn't match.") % fileid)
             # File checksum is wrong
-#            download = True
+            download = True
 
         if download:
             # Do the download as it's needed
@@ -686,13 +705,16 @@ class XMDSDownloadThread(Thread):
 
         if not os.path.isfile(tmpPath):
             # File doesn't exist at all
+            log(_("Marking file %s.xlf for download as it doesn't exist.") % fileid)
             download = True
         elif not os.path.getsize(tmpPath) == size:
             # File is incorrect size
+            log(_("Marking file %s.xlf for download as it's not the correct size.") % fileid)
             download = True
-#        elif not checksum == checksum:
+        elif not self.md5sum(tmpPath) == checksum:
             # File checksum is wrong
-#            download = True
+            log(_("Marking file %s.xlf for download as it's checksum doesn't match.") % fileid)
+            download = True
 
         if download:
             # Do the download as it's needed
@@ -760,6 +782,20 @@ class XMDSDownloadThread(Thread):
     def requestStop(self):
         # Signal that we should abort
         self.__running = False
+
+    def md5sum(self,tmpPath):
+        log(_("Calculating checksum for file %s") % tmpPath)
+        m = hashlib.md5()
+        
+        try:
+            for line in open(tmpPath,"rb"):
+                m.update(line)
+        except IOError:
+            return "0"
+
+        log(_("Checksum: %s") % m.hexdigest())
+        return m.hexdigest()
+            
 
 #### Webservice
 class XMDSException(Exception):
