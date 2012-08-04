@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2010 Alex Harrington
+# Copyright (C) 2010-12 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 
 # Static Variables
-VERSION = '1.2.2a3'
+VERSION = '1.3.3a1'
 APP_NAME = 'Xibo Offline Download Client'
 
 # Imports
@@ -806,7 +806,7 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self,licenseKey,clientName,serverKey):
-        self.__schemaVersion__ = "2";
+        self.__schemaVersion__ = "3";
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
