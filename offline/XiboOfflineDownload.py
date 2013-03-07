@@ -324,8 +324,8 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         config.set('Main','xmdsUrl',self.txtServerURL.GetValue())
         config.set('Main','xmdsKey',self.txtServerKey.GetValue())
 
-        try: 
-            config.set('Main','chunkSize', int(self.txtChunkSize.GetValue()))
+        try:
+            tmpInt = int(self.txtChunkSize.GetValue()) 
         except ValueError:
             log('Error: Chunk size must be a whole positive number greater than 0',True,True)
             event.Skip()
@@ -335,6 +335,8 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
             log('Error: Chunk size must be a whole positive number greater than 0',True,True)
             event.Skip()
             return
+
+        config.set('Main','chunkSize', self.txtChunkSize.GetValue())
 
         if self.chkVerbose.IsChecked():
             config.set('Main','verbose','true')
