@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2010-12 Alex Harrington
+# Copyright (C) 2010-2013 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 
 # Static Variables
-VERSION = '1.5.0'
+VERSION = '1.6.0'
 APP_NAME = 'Xibo Offline Download Client'
 
 # Imports
@@ -132,6 +132,10 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
             if config.get('Main','xmdsKey') != '':
                 self.txtServerKey.Clear()
                 self.txtServerKey.WriteText(config.get('Main','xmdsKey'))
+
+            if config.get('Main','chunkSize') != '':
+                self.txtChunkSize.Clear()
+                self.txtChunkSize.WriteText(config.get('Main','chunkSize'))
         except:
             # Something went wrong reading config
             # Load defaults again to be sure
@@ -320,6 +324,20 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         config.set('Main','xmdsUrl',self.txtServerURL.GetValue())
         config.set('Main','xmdsKey',self.txtServerKey.GetValue())
 
+        try:
+            tmpInt = int(self.txtChunkSize.GetValue()) 
+        except ValueError:
+            log('Error: Chunk size must be a whole positive number greater than 0',True,True)
+            event.Skip()
+            return
+
+        if int(self.txtChunkSize.GetValue()) < 1:
+            log('Error: Chunk size must be a whole positive number greater than 0',True,True)
+            event.Skip()
+            return
+
+        config.set('Main','chunkSize', self.txtChunkSize.GetValue())
+
         if self.chkVerbose.IsChecked():
             config.set('Main','verbose','true')
         else:
@@ -386,6 +404,10 @@ class XiboOfflineDownload(XiboOfflineDownloadUI):
         event.Skip()
 
     def onVerboseChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
+        self.btnSave.Enable()
+        event.Skip()
+
+    def onChunkSizeChange(self, event): # wxGlade: XiboOfflineDownloadUI.<event_handler>
         self.btnSave.Enable()
         event.Skip()
 
@@ -644,7 +666,7 @@ class XMDSDownloadThread(Thread):
 
             tries = 0
             offset = 0
-            chunk = 512000
+            chunk = config.getint('Main','chunkSize')
             finished = False
 
             while self.__running and tries < 5 and not finished:
